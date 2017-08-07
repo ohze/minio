@@ -92,7 +92,7 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	var setupType SetupType
 	var err error
 	globalMinioAddr, globalEndpoints, setupType, err = CreateEndpoints(serverAddr, ctx.Args()...)
-	fatalIf(err, "Invalid command line arguments server=‘%s’, args=%s", serverAddr, ctx.Args())
+	fatalIf(err, "Invalid command line arguments server --address=‘%s’, args=%s", serverAddr, ctx.Args())
 	globalMinioHost, globalMinioPort = mustSplitHostPort(globalMinioAddr)
 	if runtime.GOOS == "darwin" {
 		// On macOS, if a process already listens on LOCALIPADDR:PORT, net.Listen() falls back
