@@ -23,20 +23,23 @@ script:
 - make test GOFLAGS="-timeout 15m -race -v"
 - make coverage
 
-# Refer https://blog.hypriot.com/post/setup-simple-ci-pipeline-for-arm-images/
-# push image
-- >
-  if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$ARCH" == "x86_64" ]; then
-    docker run --rm --privileged multiarch/qemu-user-static:register --reset
-    docker build -t minio/minio:edge-armhf . -f Dockerfile.armhf
-    docker build -t minio/minio:edge-aarch64 . -f Dockerfile.aarch64
-    docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
-    docker push minio/minio:edge-armhf
-    docker push minio/minio:edge-aarch64
-  fi
-
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 
 go:
 - 1.8.3
+
+before_deploy:
+- CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build --ldflags "$(go run buildscripts/gen-ldflags.go)" -o minio
+
+deploy:
+  provider: releases
+  api_key:
+    secure: eqZ4BcviSEwplhzm7hQJROHTLBc9nXJTIlo7BYOW6rmL2dAqavlU4nSWUOZSGY+8+ifC+Nd5oBTj9zx/ZJMGHmU+XKPb/9KxwZ8s+V/ZZAw1eM3V04Ip48FzI1nvZ8pzeCr7o+WwPSPynQ86k/5MyvvqtEP6FKRN/wqGZk9H3tUP6TENnoGuLqbHiLgHpMAZmnGs1z6Ctnxc9JRVYbR/XAtK9NSdEHKetSZfCExd8PB1r7AckdrCDumd+XCHwXRzJVaAQDNKLOd3eR7OLf1avRlxf8rO96IygyoXQggbU7F7m9a/yVu87Zvkpn7Wv2dha8WK7AB/zaj5BwwQZWbf7Sh/2pbEmYCP5wplV7cfu17hC4pwrWK+hrw1LiQmhX8uj6nkYpBWua/UCtaoHeI89XByXJe47KIG90XD7Muaos+DgpDtAvwyCX7ElUt2bFt7xZjuoOSsaeD2x8LOfgkjZQqMuYDCCtnk55eItGFJRt3joAbmCT9JSAJ9S0v74rd0txjZJT05d+cLvWR8mIlTG2cySK07kd/p3w10MpSSBvJh56laGLBYnB5GtzOFV/u9E/zWmoOM5ucINs2CcDhFKhrq5mGqMFbndsK3wzTAmoYZUEFMyUOSenPJ33T+7l/q/Cdstgn259knNLkrNAsT6o65a6n4SwAtVFpCR04YuhY=
+  file: minio
+  skip_cleanup: true
+  on:
+    repo: ohze/minio
+    branch: ohze
+    tags: true
+    condition: "$ARCH = x86_64"
