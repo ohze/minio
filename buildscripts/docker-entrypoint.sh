@@ -18,11 +18,15 @@
 # fix issue: in rancher with docker 1.11.2 (not occur on docker 1.12.1), minio1 can not ping minio2
 # so this script hang on docker_wait_hosts
 # fix by adding SERVICE_N_STACK env variable, ex: minio3.minio
-if [ "$SERVICE_N_STACK" != "" ]; then
-    STACK=${SERVICE_N_STACK/*./}
-    sed /etc/resolv.conf -e "s|^search .*|search ${STACK}.rancher.internal rancher.internal ${SERVICE_N_STACK}.rancher.internal|" > /tmp/resolv.conf
-    cat /tmp/resolv.conf > /etc/resolv.conf
-fi
+fix_resolv() {
+    if [ "$SERVICE_N_STACK" != "" ]; then
+        STACK=${SERVICE_N_STACK/*./}
+        sed /etc/resolv.conf \
+            -e "s|^search .*|search ${STACK}.rancher.internal rancher.internal ${SERVICE_N_STACK}.rancher.internal|" \
+            > /tmp/resolv.conf
+        cat /tmp/resolv.conf > /etc/resolv.conf
+    fi
+}
 
 # If command starts with an option, prepend minio.
 if [ "${1}" != "minio" ]; then
@@ -44,6 +48,7 @@ docker_wait_hosts() {
     if [ $num_hosts -gt 0 ]; then
         echo -n "Waiting for all hosts to resolve..."
         while true; do
+            fix_resolv
             x=0
             for host in $hosts; do
                 [ $(echo "$host" | grep -E "^http") ] || continue
